@@ -1,9 +1,9 @@
-# Hands-on AI Agents: 2025 Guide
+# Hands-on AI Agents: 2026 Guide
 
 This repository contains the source code, examples, and project implementations for the book **"Hands-on AI Agents"**.
 
 ## 🚀 Book Overview
-A practical, code-first guide to building autonomous and semi-autonomous AI agents using the most cutting-edge frameworks and protocols of 2024-2025.
+A practical, code-first guide to building autonomous and semi-autonomous AI agents using the most cutting-edge frameworks and protocols of 2025-2026.
 
 ### Key Technologies
 - **LangGraph**: Enterprise-grade stateful agent graphs.
