@@ -10,6 +10,7 @@ Usage:
 Requires: pip install anthropic
 """
 
+import ast
 import json
 import sys
 from pathlib import Path
@@ -18,6 +19,9 @@ from anthropic import Anthropic
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from shared.config import require_key, ANTHROPIC_MODEL
+from shared.skills import WebSkill
+
+_web = WebSkill()
 
 client = Anthropic(api_key=require_key("anthropic"))
 
@@ -53,12 +57,15 @@ TOOLS = [
 
 def execute_tool(name: str, args: dict) -> str:
     if name == "search_web":
-        return f"Search results for '{args['query']}': [MCP is an open protocol by Anthropic for tool integration]"
+        return _web._search(args["query"])
     elif name == "calculator":
         try:
-            result = eval(args["expression"], {"__builtins__": {}})
+            # ast.literal_eval is safe — it only parses Python literals,
+            # not arbitrary expressions. For real math eval, use a proper
+            # parser like sympy. Never use eval() on LLM-generated input.
+            result = ast.literal_eval(args["expression"])
             return str(result)
-        except Exception as e:
+        except (ValueError, SyntaxError) as e:
             return f"Error: {e}"
     return f"Unknown tool: {name}"
 

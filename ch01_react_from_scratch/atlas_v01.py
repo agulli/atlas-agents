@@ -23,7 +23,8 @@ from html.parser import HTMLParser
 from openai import OpenAI
 
 # ── Configuration ────────────────────────────────────────────────────
-sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from shared.config import require_key, OPENAI_MODEL
 
 client = OpenAI(api_key=require_key("openai"))
