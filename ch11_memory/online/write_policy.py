@@ -16,9 +16,13 @@ Concepts demonstrated:
   2. ADD / UPDATE / DELETE / NOOP routing (Mem0 pattern).
   3. Speaker-turn vs. session-level extraction tradeoff.
 
-Recommendation surfaced by the demo: session-level extraction is the better
-default for most production systems. Turn-level is only necessary when
-real-time cross-session persistence matters.
+The demo surfaces a real tradeoff, not a verdict. Session-level extraction
+is a strong default for most conversational agents because the active
+context window already handles within-session needs. Turn-level extraction
+is the right choice when real-time cross-session persistence matters, for
+example agents that need to recall a fact mid-conversation across sessions
+interleaved within seconds. Both modes are demonstrated side by side so
+readers can pick the appropriate default for their product.
 
 References:
   - Mem0 architecture paper: https://arxiv.org/abs/2504.19413
@@ -233,12 +237,15 @@ def run_turn_level(conversation: list[dict]) -> tuple[dict[str, Memory], dict]:
     """Extract after each user turn, post-process immediately.
 
     Cost:   1 extract call + N post-process calls per user turn.
-    Effect: many low-signal candidates, frequent NOOPs, multi-turn context
-            often missed because each window is small.
+    Effect: each per-turn extraction sees only a narrow window, so candidates
+            can be redundant across turns and multi-turn facts may be missed
+            unless post-processing reconciles them via UPDATE/NOOP routing.
 
-    Necessary only when real-time cross-session persistence matters, for
+    Right choice when real-time cross-session persistence matters, for
     example an agent that needs to recall a fact mid-conversation across
-    sessions interleaved within seconds.
+    sessions interleaved within seconds. Production systems sometimes also
+    use turn-level to surface facts as soon as they appear (e.g. safety
+    flags) where any delay would degrade the product.
     """
     store: dict[str, Memory] = {}
     counts = {"extract_calls": 0, "decide_calls": 0, "ADD": 0, "UPDATE": 0, "DELETE": 0, "NOOP": 0}
@@ -267,11 +274,12 @@ def run_session_level(conversation: list[dict]) -> tuple[dict[str, Memory], dict
     Effect: sees the full conversational arc, produces cleaner atomic
             candidates, fewer NOOPs.
 
-    Why this is the right default: the active context window already
-    captures within-session needs as short-term memory, so deferring
-    long-term extraction to session-end has minimal conversation-quality
-    impact. Coupling this to a context-compaction event is natural,
-    because both fire at the same boundary.
+    Why this works as a default for most conversational agents: the active
+    context window already captures within-session needs as short-term
+    memory, so deferring long-term extraction to session-end has minimal
+    conversation-quality impact. Coupling this to a context-compaction event
+    is natural, since both fire at the same boundary. Products that need
+    real-time cross-session recall should prefer turn-level instead.
     """
     store: dict[str, Memory] = {}
     counts = {"extract_calls": 0, "decide_calls": 0, "ADD": 0, "UPDATE": 0, "DELETE": 0, "NOOP": 0}
@@ -331,11 +339,13 @@ def main():
         f"{session_counts['decide_calls']:>10}{len(session_store):>12}"
     )
     print(
-        "\nTurn-level fires the extractor on every user turn, regardless of\n"
-        "whether the turn carries memorable content. Session-level extracts\n"
-        "once at end-of-session over the full arc. The conversation-quality\n"
-        "impact of the delay is minimal because the active context window\n"
-        "already handles within-session needs as short-term memory."
+        "\nTurn-level fires the extractor on each user turn and can produce\n"
+        "redundant candidates because each window is narrow. It is the right\n"
+        "choice when real-time cross-session persistence matters.\n"
+        "Session-level extracts once at end-of-session over the full arc and\n"
+        "is the cleaner default for most conversational agents, since the\n"
+        "active context window already handles within-session needs as\n"
+        "short-term memory. Pick the mode that fits the product."
     )
 
 
