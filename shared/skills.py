@@ -7,7 +7,7 @@ with the SkillRegistry and used by any agent framework.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Literal
 from pathlib import Path
 import json
 import re
@@ -16,6 +16,8 @@ import tempfile
 from urllib.request import urlopen, Request
 from urllib.parse import quote_plus
 from html.parser import HTMLParser
+
+from tavily import TavilyClient
 
 
 # ── Base Class ───────────────────────────────────────────────────────
@@ -128,7 +130,11 @@ class WebSkill(Skill):
                 "type": "function",
                 "function": {
                     "name": "web_search",
-                    "description": "Search the web using DuckDuckGo. Returns top 5 results with titles and snippets.",
+                    "description": (
+                        "Search the web using DuckDuckGo. Returns top 5 results with "
+                        "titles and snippets. May fail when DuckDuckGo blocks automated "
+                        "requests; use tavily_search when available."
+                    ),
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -355,3 +361,80 @@ class CodeSkill(Skill):
                 return f"Error: Timed out after {self.timeout}s."
             finally:
                 Path(f.name).unlink(missing_ok=True)
+
+
+# ── TavilySkill ──────────────────────────────────────────────────────
+
+
+class TavilySkill(Skill):
+    """Web research skill — deep search via the Tavily API."""
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        max_results: int = 5,
+        search_depth: Literal["basic", "advanced"] = "advanced",
+    ):
+        self.client = TavilyClient(api_key)
+        self.max_results = max_results
+        self.search_depth = search_depth
+
+    @property
+    def name(self) -> str:
+        return "TavilySkill"
+
+    @property
+    def description(self) -> str:
+        return (
+            "Search the web using Tavily for deep research with extracted page content."
+        )
+
+    def get_tools(self) -> list[dict]:
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": "tavily_search",
+                    "description": (
+                        "Search the web using Tavily. Returns top results with "
+                        "titles, URLs, and extracted page content."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string", "description": "Search query"}
+                        },
+                        "required": ["query"],
+                    },
+                },
+            }
+        ]
+
+    def execute(self, tool_name: str, args: dict) -> str:
+        if tool_name == "tavily_search":
+            return self._search(args["query"])
+        raise ValueError(f"Unknown tool: {tool_name}")
+
+    def _search(self, query: str) -> str:
+        try:
+            response = self.client.search(
+                query=query,
+                search_depth=self.search_depth,
+                max_results=self.max_results,
+            )
+            return self._format_results(response.get("results", []))
+        except Exception as e:
+            return f"Error: Tavily search failed — {e}"
+
+    def _format_results(self, results: list[dict]) -> str:
+        if not results:
+            return "No results found."
+        sep = "-" * 100
+        lines = []
+        for result in results:
+            lines.append(sep)
+            lines.append(f"# TITLE: {result.get('title', '')}")
+            lines.append(f"# URL: {result.get('url', '')}")
+            lines.append(f"# CONTENT: {result.get('content', '')}")
+            lines.append(sep)
+        return "\n".join(lines)
