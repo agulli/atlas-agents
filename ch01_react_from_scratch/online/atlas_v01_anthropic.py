@@ -11,7 +11,6 @@ Requires: pip install anthropic
 """
 
 import ast
-import json
 import sys
 from pathlib import Path
 
@@ -19,9 +18,9 @@ from anthropic import Anthropic
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from shared.config import require_key, ANTHROPIC_MODEL
-from shared.skills import WebSkill
+from shared.skills import WebSearchSkill
 
-_web = WebSkill()
+_web = WebSearchSkill(api_key=require_key("tavily"))
 
 client = Anthropic(api_key=require_key("anthropic"))
 

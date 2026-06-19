@@ -16,8 +16,8 @@ from openai import OpenAI
 
 # ── Configuration ────────────────────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from shared.config import require_key, OPENAI_MODEL
-from shared.skills import SkillRegistry, WebSkill, FileSkill, CodeSkill
+from shared.config import OPENAI_MODEL, require_key
+from shared.skills import CodeSkill, FileSkill, SkillRegistry, WebSearchSkill
 
 client = OpenAI(api_key=require_key("openai"))
 MAX_ITERATIONS = 6
@@ -25,7 +25,7 @@ MAX_ITERATIONS = 6
 # ── Skill Setup ─────────────────────────────────────────────────────
 
 registry = SkillRegistry()
-registry.register(WebSkill())
+registry.register(WebSearchSkill(api_key=require_key("tavily")))
 registry.register(FileSkill(base_dir="./workspace"))
 registry.register(CodeSkill())
 
@@ -76,7 +76,7 @@ def run_atlas(question: str):
             fn_args = json.loads(tool_call.function.arguments)
 
             print(f"🔧 Calling: {fn_name}({fn_args})")
-            
+
             # Execute through the registry
             result = registry.execute_tool(fn_name, fn_args)
 
@@ -86,9 +86,9 @@ def run_atlas(question: str):
 
             # Feed back to messages
             messages.append({
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "content": result,
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": result,
             })
 
     return "Error: Agent reached maximum iterations."

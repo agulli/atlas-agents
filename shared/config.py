@@ -14,6 +14,7 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
 
 # ── Default Models ───────────────────────────────────────────────────
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
@@ -31,6 +32,7 @@ def require_key(provider: str) -> str:
         "openai": OPENAI_API_KEY,
         "google": GOOGLE_API_KEY,
         "anthropic": ANTHROPIC_API_KEY,
+        "tavily": TAVILY_API_KEY,
     }
     key = keys.get(provider.lower(), "")
     if not key:

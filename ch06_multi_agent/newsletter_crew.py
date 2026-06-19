@@ -14,12 +14,12 @@ from pathlib import Path
 from crewai import Agent, Task, Crew, Process
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from shared.config import OPENAI_MODEL
-from shared.skills import WebSkill
+from shared.config import require_key
+from shared.skills import WebSearchSkill
 
 # ── Tools ────────────────────────────────────────────────────────────
 
-web_skill = WebSkill()
+web_skill = WebSearchSkill(api_key=require_key("tavily"))
 
 def search_tool(query: str) -> str:
     """Search the web for {query}."""
