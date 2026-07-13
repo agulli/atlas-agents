@@ -12,6 +12,7 @@ Requires: pip install crewai crewai-tools
 import sys
 from pathlib import Path
 from crewai import Agent, Task, Crew, Process
+from crewai.tools import tool
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from shared.config import OPENAI_MODEL
@@ -21,10 +22,12 @@ from shared.skills import WebSkill
 
 web_skill = WebSkill()
 
+@tool("search_tool")
 def search_tool(query: str) -> str:
     """Search the web for {query}."""
     return web_skill.execute("web_search", {"query": query})
 
+@tool("read_tool")
 def read_tool(url: str) -> str:
     """Read the text content of a web page at {url}."""
     return web_skill.execute("web_read_page", {"url": url})
