@@ -1,0 +1,28 @@
+# Environment and secrets
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+
+# Local agent output
+.output/
+workspace/
+ch01_react_from_scratch/search_results.html
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Local book copy (not part of the repo)
+Building AI Agents_ From Design Patterns to Production.md

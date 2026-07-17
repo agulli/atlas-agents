@@ -7,16 +7,12 @@ with the SkillRegistry and used by any agent framework.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Literal
 from pathlib import Path
-import json
-import re
 import subprocess
 import tempfile
-from urllib.request import urlopen, Request
-from urllib.parse import quote_plus
 from html.parser import HTMLParser
-
+from tavily import TavilyClient
 
 # ── Base Class ───────────────────────────────────────────────────────
 
@@ -109,96 +105,6 @@ class _HTMLTextExtractor(HTMLParser):
         return "\n".join(line for line in self._text if line)
 
 
-# ── WebSkill ─────────────────────────────────────────────────────────
-
-class WebSkill(Skill):
-    """Web research skill — search and read web pages."""
-
-    @property
-    def name(self) -> str:
-        return "WebSkill"
-
-    @property
-    def description(self) -> str:
-        return "Search the web and read web pages."
-
-    def get_tools(self) -> list[dict]:
-        return [
-            {
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web using DuckDuckGo. Returns top 5 results with titles and snippets.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {"type": "string", "description": "Search query"}
-                        },
-                        "required": ["query"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "web_read_page",
-                    "description": "Read and extract the text content of a web page. Returns up to 4000 characters.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "url": {"type": "string", "description": "URL to read"}
-                        },
-                        "required": ["url"]
-                    }
-                }
-            },
-        ]
-
-    def execute(self, tool_name: str, args: dict) -> str:
-        if tool_name == "web_search":
-            return self._search(args["query"])
-        elif tool_name == "web_read_page":
-            return self._read_page(args["url"])
-        raise ValueError(f"Unknown tool: {tool_name}")
-
-    def _search(self, query: str) -> str:
-        try:
-            url = f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
-            req = Request(url, headers={"User-Agent": "Mozilla/5.0 (Atlas Agent)"})
-            with urlopen(req, timeout=10) as resp:
-                html = resp.read().decode("utf-8", errors="replace")
-            results = []
-            for match in re.finditer(
-                r'<a rel="nofollow" class="result__a" href="([^"]+)"[^>]*>(.*?)</a>.*?'
-                r'<a class="result__snippet"[^>]*>(.*?)</a>',
-                html, re.DOTALL
-            ):
-                href, title, snippet = match.groups()
-                title = re.sub(r"<[^>]+>", "", title).strip()
-                snippet = re.sub(r"<[^>]+>", "", snippet).strip()
-                if title:
-                    results.append(f"- [{title}]({href})\n  {snippet}")
-                if len(results) >= 5:
-                    break
-            return "\n\n".join(results) if results else "No results found."
-        except Exception as e:
-            return f"Error: Search failed — {e}"
-
-    def _read_page(self, url: str) -> str:
-        try:
-            req = Request(url, headers={"User-Agent": "Mozilla/5.0 (Atlas Agent)"})
-            with urlopen(req, timeout=10) as resp:
-                html = resp.read().decode("utf-8", errors="replace")
-            extractor = _HTMLTextExtractor()
-            extractor.feed(html)
-            text = extractor.get_text()
-            if len(text) > 4000:
-                text = text[:4000] + "\n\n[...truncated]"
-            return text if text else "Could not extract text."
-        except Exception as e:
-            return f"Error: Failed to read URL — {e}"
-
-
 # ── FileSkill ────────────────────────────────────────────────────────
 
 class FileSkill(Skill):
@@ -255,7 +161,7 @@ class FileSkill(Skill):
                         "type": "object",
                         "properties": {
                             "directory": {"type": "string", "description": "Relative directory path", "default": "."}
-                        }
+                            }
                     }
                 }
             },
@@ -316,18 +222,18 @@ class CodeSkill(Skill):
 
     def get_tools(self) -> list[dict]:
         return [{
-            "type": "function",
-            "function": {
-                "name": "code_execute",
-                "description": (
-                    "Execute Python code and return stdout/stderr. "
-                    f"Runs in a subprocess with a {self.timeout}s timeout."
-                ),
-                "parameters": {
-                    "type": "object",
-                    "properties": {
+                "type": "function",
+                "function": {
+                    "name": "code_execute",
+                    "description": (
+                        "Execute Python code and return stdout/stderr. "
+                        f"Runs in a subprocess with a {self.timeout}s timeout."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
                         "code": {"type": "string", "description": "Python code to execute"}
-                    },
+                        },
                     "required": ["code"]
                 }
             }
@@ -355,3 +261,79 @@ class CodeSkill(Skill):
                 return f"Error: Timed out after {self.timeout}s."
             finally:
                 Path(f.name).unlink(missing_ok=True)
+
+
+# ── WebSearchSkill ──────────────────────────────────────────────────────
+
+class WebSearchSkill(Skill):
+    """Web research skill — deep search via the Tavily API."""
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        max_results: int = 5,
+        search_depth: Literal["basic", "advanced"] = "advanced",
+    ):
+        self.client = TavilyClient(api_key)
+        self.max_results = max_results
+        self.search_depth = search_depth
+
+    @property
+    def name(self) -> str:
+        return "WebSearchSkill"
+
+    @property
+    def description(self) -> str:
+        return (
+            "Search the web using Tavily for deep research with extracted page content."
+        )
+
+    def get_tools(self) -> list[dict]:
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": "web_search",
+                    "description": (
+                        "Search the web using Tavily. Returns top results with "
+                        "titles, URLs, and extracted page content."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string", "description": "Search query"}
+                        },
+                        "required": ["query"],
+                    },
+                },
+            }
+        ]
+
+    def execute(self, tool_name: str, args: dict) -> str:
+        if tool_name == "web_search":
+            return self._search(args["query"])
+        raise ValueError(f"Unknown tool: {tool_name}")
+
+    def _search(self, query: str) -> str:
+        try:
+            response = self.client.search(
+                query=query,
+                search_depth=self.search_depth,
+                max_results=self.max_results,
+            )
+            return self._format_results(response.get("results", []))
+        except Exception as e:
+            return f"Error: Tavily search failed — {e}"
+
+    def _format_results(self, results: list[dict]) -> str:
+        if not results:
+            return "No results found."
+        sep = "-" * 100
+        lines = []
+        for result in results:
+            lines.append(sep)
+            lines.append(f"# TITLE: {result.get('title', '')}")
+            lines.append(f"# URL: {result.get('url', '')}")
+            lines.append(f"# CONTENT: {result.get('content', '')}")
+            lines.append(sep)
+        return "\n".join(lines)
