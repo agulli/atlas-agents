@@ -201,7 +201,7 @@ async def main():
     print(f"🪪 Agent Card saved to {card_path}\n")
 
     async with stdio_server() as (read, write):
-        await server.run(read, write)
+        await server.run(read, write, server.create_initialization_options())
 
 
 if __name__ == "__main__":
