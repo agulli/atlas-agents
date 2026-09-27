@@ -130,15 +130,15 @@ def capture_screenshot(url: str, output_path: str = "actual.png"):
 
 def main():
     if len(sys.argv) == 3:
-        # Direct comparison: two existing image files
-        expected_path = sys.argv[1]
-        actual_path   = sys.argv[2]
-
-    elif len(sys.argv) == 3 and sys.argv[1].startswith("http"):
-        # Capture + compare: URL + expected image
-        url           = sys.argv[1]
-        expected_path = sys.argv[2]
-        actual_path   = capture_screenshot(url)
+        if sys.argv[1].startswith("http"):
+            # Capture + compare: URL + expected image
+            url           = sys.argv[1]
+            expected_path = sys.argv[2]
+            actual_path   = capture_screenshot(url)
+        else:
+            # Direct comparison: two existing image files
+            expected_path = sys.argv[1]
+            actual_path   = sys.argv[2]
 
     else:
         print("Usage:")
