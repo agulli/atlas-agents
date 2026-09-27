@@ -14,4 +14,4 @@ def apply_chain_of_density(text):
     4. Repeat this density process 3 times.
     
     OUTPUT FORMAT: JSON array of 4 summaries, progressively denser.
-    """\n
+    """
