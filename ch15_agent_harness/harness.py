@@ -16,6 +16,7 @@ Requires: pip install ruff  (for linter verification)
 
 import json
 import logging
+import shlex
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -42,7 +43,9 @@ class AgentHarness:
 
     def __init__(self, workspace_dir: Path, allowed_commands: set[str] | None = None):
         self.workspace_dir = Path(workspace_dir).resolve()
-        self.allowed_commands = allowed_commands or self.DEFAULT_ALLOWED
+        self.allowed_commands = (
+            self.DEFAULT_ALLOWED if allowed_commands is None else allowed_commands
+        )
         self.trajectory: list[dict[str, Any]] = []
 
         self.workspace_dir.mkdir(parents=True, exist_ok=True)
@@ -123,11 +126,20 @@ class AgentHarness:
             return f"Error: {e}"
 
     def _run_command(self, command: str) -> str:
-        """Run a shell command after checking it against the allowlist."""
+        """Run one executable directly after checking it against the allowlist."""
         if not command.strip():
             return "Error: command is empty."
 
-        base_cmd = command.strip().split()[0]
+        try:
+            argv = shlex.split(command)
+        except ValueError as e:
+            self._record(event="blocked_command", command=command, reason=str(e))
+            return f"Error: Invalid command syntax — {e}"
+
+        if not argv:
+            return "Error: command is empty."
+
+        base_cmd = argv[0]
         if base_cmd not in self.allowed_commands:
             log.warning(f"Blocked: {command}")
             self._record(event="blocked_command", command=command)
@@ -135,7 +147,7 @@ class AgentHarness:
 
         try:
             result = subprocess.run(
-                command, shell=True, cwd=self.workspace_dir,
+                argv, shell=False, cwd=self.workspace_dir,
                 capture_output=True, text=True, timeout=30,
             )
             output = (result.stdout + result.stderr).strip() or "(no output)"
