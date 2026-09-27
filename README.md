@@ -62,3 +62,8 @@ Every script is self-contained and documents its own usage and dependencies in i
 cd ch20_loop_engineering
 python fix_loop.py --repo ./orders-service --goal "pytest green, ruff clean"
 ```
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, offline checks,
+and guidance for examples that use provider credentials.
