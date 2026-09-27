@@ -7,6 +7,7 @@ with the SkillRegistry and used by any agent framework.
 """
 
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from typing import Any
 from pathlib import Path
 import json
@@ -48,40 +49,87 @@ class Skill(ABC):
 
 # ── Skill Registry ───────────────────────────────────────────────────
 
+class DuplicateToolNameError(ValueError):
+    """Raised when two registered tools would expose the same public name."""
+
+
 class SkillRegistry:
-    """Registry that manages skills and dispatches tool calls."""
+    """Registry that manages skills and dispatches tool calls.
+
+    Tools keep their original names by default. Callers that compose skills with
+    overlapping tool names can provide a namespace during registration. The
+    registry then exposes names such as ``database__read`` while still passing
+    the skill's original ``read`` name to ``Skill.execute``.
+    """
+
+    _VALID_NAMESPACE = re.compile(r"^[A-Za-z0-9_-]+$")
 
     def __init__(self):
         self._skills: dict[str, Skill] = {}
-        self._tool_to_skill: dict[str, str] = {}
+        self._tool_routes: dict[str, tuple[str, str]] = {}
+        self._tool_schemas: dict[str, dict] = {}
 
-    def register(self, skill: Skill):
-        """Register a skill and index its tools."""
-        self._skills[skill.name] = skill
+    def register(self, skill: Skill, namespace: str | None = None):
+        """Register a skill and index its tools atomically.
+
+        Args:
+            skill: The skill to register.
+            namespace: Optional prefix for every exposed tool name. Namespaced
+                tools use ``<namespace>__<tool_name>`` so their names remain
+                compatible with OpenAI function-name restrictions.
+
+        Raises:
+            ValueError: If the skill or namespace is invalid.
+            DuplicateToolNameError: If a public tool name is already registered.
+        """
+        if skill.name in self._skills:
+            raise ValueError(f"Skill '{skill.name}' is already registered")
+        if namespace is not None and not self._VALID_NAMESPACE.fullmatch(namespace):
+            raise ValueError(
+                "Namespace must contain only letters, numbers, underscores, and hyphens"
+            )
+
+        pending: list[tuple[str, str, dict]] = []
+        pending_names: set[str] = set()
         for tool in skill.get_tools():
-            tool_name = tool["function"]["name"]
-            self._tool_to_skill[tool_name] = skill.name
+            local_name = tool["function"]["name"]
+            public_name = (
+                f"{namespace}__{local_name}" if namespace is not None else local_name
+            )
+            if public_name in self._tool_routes or public_name in pending_names:
+                raise DuplicateToolNameError(
+                    f"Tool name '{public_name}' is already registered; "
+                    "register one of the skills with a namespace"
+                )
+
+            public_schema = deepcopy(tool)
+            public_schema["function"]["name"] = public_name
+            pending.append((public_name, local_name, public_schema))
+            pending_names.add(public_name)
+
+        self._skills[skill.name] = skill
+        for public_name, local_name, public_schema in pending:
+            self._tool_routes[public_name] = (skill.name, local_name)
+            self._tool_schemas[public_name] = public_schema
 
     def get_all_tools(self) -> list[dict]:
         """Return all tool schemas from all registered skills."""
-        tools = []
-        for skill in self._skills.values():
-            tools.extend(skill.get_tools())
-        return tools
+        return deepcopy(list(self._tool_schemas.values()))
 
     def execute_tool(self, tool_name: str, args: dict) -> str:
         """Route a tool call to the correct skill."""
-        skill_name = self._tool_to_skill.get(tool_name)
-        if not skill_name:
+        route = self._tool_routes.get(tool_name)
+        if not route:
             return f"Error: Unknown tool '{tool_name}'"
-        return self._skills[skill_name].execute(tool_name, args)
+        skill_name, local_name = route
+        return self._skills[skill_name].execute(local_name, args)
 
     def list_skills(self) -> list[str]:
         return list(self._skills.keys())
 
     def __repr__(self) -> str:
         skills = ", ".join(self._skills.keys())
-        tools = ", ".join(self._tool_to_skill.keys())
+        tools = ", ".join(self._tool_routes.keys())
         return f"SkillRegistry(skills=[{skills}], tools=[{tools}])"
 
 
