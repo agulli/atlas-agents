@@ -270,24 +270,31 @@ class FileSkill(Skill):
             return self._list(args.get("directory", "."))
         raise ValueError(f"Unknown tool: {tool_name}")
 
+    def _resolve_path(self, path: str) -> Path | None:
+        """Resolve a user path and return it only when it stays in the sandbox."""
+        full = (self.base_dir / path).resolve()
+        return full if full.is_relative_to(self.base_dir) else None
+
     def _read(self, path: str) -> str:
-        full = self.base_dir / path
-        if not full.resolve().is_relative_to(self.base_dir):
+        full = self._resolve_path(path)
+        if full is None:
             return "Error: Path escapes sandbox."
         if not full.exists():
             return f"Error: File not found: {path}"
         return full.read_text(encoding="utf-8")
 
     def _write(self, path: str, content: str) -> str:
-        full = self.base_dir / path
-        if not full.resolve().is_relative_to(self.base_dir):
+        full = self._resolve_path(path)
+        if full is None:
             return "Error: Path escapes sandbox."
         full.parent.mkdir(parents=True, exist_ok=True)
         full.write_text(content, encoding="utf-8")
         return f"Written {len(content)} chars to {path}"
 
     def _list(self, directory: str = ".") -> str:
-        dir_path = self.base_dir / directory
+        dir_path = self._resolve_path(directory)
+        if dir_path is None:
+            return "Error: Path escapes sandbox."
         if not dir_path.exists():
             return f"Error: Not found: {directory}"
         entries = sorted(dir_path.iterdir())
