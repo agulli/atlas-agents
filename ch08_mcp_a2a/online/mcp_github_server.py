@@ -13,4 +13,4 @@ def search_repos(query: str) -> list[str]:
     return [repo.full_name for repo in repos[:5]]
 
 if __name__ == "__main__":
-    mcp.run() # Starts the stdio interface that agents connect to\n
+    mcp.run() # Starts the stdio interface that agents connect to
