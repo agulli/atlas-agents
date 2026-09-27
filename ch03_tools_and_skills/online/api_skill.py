@@ -19,4 +19,4 @@ class RestAPISkill:
             data = str(res.json())
             return data[:2000] + "...[TRUNCATED]" if len(data) > 2000 else data
         except Exception as str_e:
-            return f"API Call Failed: {str(str_e)}"\n
+            return f"API Call Failed: {str(str_e)}"
