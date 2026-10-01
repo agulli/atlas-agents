@@ -18,6 +18,12 @@ from pathlib import Path
 import anthropic
 import chromadb
 
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.config import ANTHROPIC_FAST_MODEL, ANTHROPIC_MODEL  # also loads .env
+from shared.llm_utils import parse_json
+
+
 client = anthropic.Anthropic()
 
 # ── Memory Store ─────────────────────────────────────────────────────
@@ -69,7 +75,7 @@ def recall(query: str, n: int = 5) -> list[dict]:
 def extract_memories(user_message: str, assistant_response: str) -> list[dict]:
     """Automatically extract memorable facts from the conversation."""
     response = client.messages.create(
-        model="claude-haiku-4-5",
+        model=ANTHROPIC_FAST_MODEL,
         system="""Analyze this conversation turn for facts worth remembering.
 
 Return a JSON object with a 'memories' key containing an array of objects.
@@ -89,7 +95,7 @@ Respond with valid JSON only.""",
         max_tokens=300,
     )
     try:
-        result = json.loads(response.content[0].text)
+        result = parse_json(response.content[0].text)
         return result.get("memories", [])
     except (json.JSONDecodeError, KeyError):
         return []
@@ -119,7 +125,7 @@ def run_memory_agent(message: str) -> str:
 
     # 3. Generate response
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=ANTHROPIC_MODEL,
         system=system,
         messages=[
             {"role": "user", "content": message},

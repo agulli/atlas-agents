@@ -20,10 +20,12 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_openai import ChatOpenAI
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from shared.config import require_key, OPENAI_MODEL
+from shared.config import require_key, OPENAI_MODEL, OPENAI_BASE_URL
+from shared.llm_utils import parse_json
 
 require_key("openai")
-llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0)
+# base_url is empty for OpenAI's cloud, or http://localhost:11434/v1 for Ollama.
+llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0, base_url=OPENAI_BASE_URL or None)
 
 
 # ── State ────────────────────────────────────────────────────────────
@@ -71,7 +73,7 @@ def analyze(state: ReviewState) -> dict:
         {"role": "user", "content": f"Review this diff:\n{state['pr_diff']}"}
     ])
     try:
-        comments = json.loads(response.content)
+        comments = parse_json(response.content)
     except json.JSONDecodeError:
         comments = [response.content]
 
@@ -88,7 +90,7 @@ def self_check(state: ReviewState) -> dict:
         {"role": "user", "content": f"Review comments:\n{json.dumps(comments)}"}
     ])
     try:
-        result = json.loads(response.content)
+        result = parse_json(response.content)
         score = result.get("score", 5)
     except (json.JSONDecodeError, AttributeError):
         score = 5

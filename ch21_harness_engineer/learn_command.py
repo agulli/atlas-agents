@@ -32,8 +32,13 @@ from pathlib import Path
 
 import anthropic
 
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.config import ANTHROPIC_STRONG_MODEL  # also loads .env
+
+
 client = anthropic.Anthropic()
-MODEL = "claude-opus-4-8"
+MODEL = ANTHROPIC_STRONG_MODEL
 
 STAGING_DIR = Path("staging")
 

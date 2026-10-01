@@ -25,6 +25,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.config import ANTHROPIC_MODEL  # also loads .env
+
+
 # ── App and clients ───────────────────────────────────────────────────
 
 app    = FastAPI(title="Atlas Agent API", version="0.19")
@@ -63,7 +70,7 @@ ATLAS_SYSTEM = (
 def _run_atlas(message: str) -> dict:
     """Run Atlas synchronously. Returns result dict."""
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=ANTHROPIC_MODEL,
         system=ATLAS_SYSTEM,
         messages=[{"role": "user", "content": message}],
         max_tokens=1024,
@@ -93,7 +100,7 @@ async def stream_agent(request: AgentRequest):
     """Server-Sent Events: streams tokens as they are generated."""
     async def event_stream():
         with client.messages.stream(
-            model="claude-sonnet-4-6",
+            model=ANTHROPIC_MODEL,
             system=ATLAS_SYSTEM,
             messages=[{"role": "user", "content": request.message}],
             max_tokens=1024,

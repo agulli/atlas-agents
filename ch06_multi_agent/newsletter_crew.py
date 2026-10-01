@@ -11,11 +11,14 @@ Requires: pip install crewai crewai-tools
 
 import sys
 from pathlib import Path
-from crewai import Agent, Task, Crew, Process
+from crewai import Agent, Task, Crew, Process, LLM
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from shared.config import OPENAI_MODEL
+from shared.config import LITELLM_MODEL  # also loads .env
 from shared.skills import WebSkill
+
+# CrewAI routes through LiteLLM: "openai/gpt-4o" in the cloud, "ollama_chat/<model>" locally.
+llm = LLM(model=LITELLM_MODEL)
 
 # ── Tools ────────────────────────────────────────────────────────────
 
@@ -41,6 +44,7 @@ researcher = Agent(
     You never accept a single source as truth.""",
     verbose=True,
     allow_delegation=False,
+    llm=llm,
     tools=[search_tool, read_tool],
 )
 
@@ -53,6 +57,7 @@ writer = Agent(
     You structure articles as: Hook → Key Points → Analysis → Takeaway.""",
     verbose=True,
     allow_delegation=False,
+    llm=llm,
 )
 
 critic = Agent(
@@ -64,6 +69,7 @@ critic = Agent(
     'make it better'. You score articles on a 1-10 scale.""",
     verbose=True,
     allow_delegation=False,
+    llm=llm,
 )
 
 publisher = Agent(
@@ -74,6 +80,7 @@ publisher = Agent(
     You ensure every newsletter looks professional and is ready to send.""",
     verbose=True,
     allow_delegation=False,
+    llm=llm,
 )
 
 

@@ -27,13 +27,27 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import anthropic
-from google import genai as google_genai
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from eval_harness import EVAL_CASES, mock_agent
 
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import (  # also loads .env
+    ANTHROPIC_FAST_MODEL, ANTHROPIC_MODEL, ANTHROPIC_STRONG_MODEL, GEMINI_MODEL, GOOGLE_API_KEY,
+)
+from shared.llm_utils import parse_json
+
+
 anthropic_client = anthropic.Anthropic()
-gemini_client    = google_genai.Client()
+# The third judge should come from a different model family. Without a Google key
+# (e.g. fully local on Ollama) it falls back to ANTHROPIC_STRONG_MODEL, so point
+# that at a different local model than the other two judges.
+if GOOGLE_API_KEY:
+    from google import genai as google_genai
+    gemini_client = google_genai.Client()
+else:
+    gemini_client = None
 
 # ── Judge implementations ─────────────────────────────────────────────
 
@@ -58,27 +72,27 @@ Output JSON:
 def claude_sonnet_judge(question: str, answer: str, facts: list[str]) -> dict:
     facts_text = "\n".join(f"- {f}" for f in facts)
     resp = anthropic_client.messages.create(
-        model="claude-sonnet-4-6",
+        model=ANTHROPIC_MODEL,
         max_tokens=512,
         system=JUDGE_SYSTEM,
         messages=[{"role": "user", "content": JUDGE_PROMPT_TEMPLATE.format(
             question=question, facts=facts_text, answer=answer
         )}],
     )
-    return json.loads(resp.content[0].text)
+    return parse_json(resp.content[0].text)
 
 
 def claude_haiku_judge(question: str, answer: str, facts: list[str]) -> dict:
     facts_text = "\n".join(f"- {f}" for f in facts)
     resp = anthropic_client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model=ANTHROPIC_FAST_MODEL,
         max_tokens=256,
         system=JUDGE_SYSTEM,
         messages=[{"role": "user", "content": JUDGE_PROMPT_TEMPLATE.format(
             question=question, facts=facts_text, answer=answer
         )}],
     )
-    return json.loads(resp.content[0].text)
+    return parse_json(resp.content[0].text)
 
 
 def gemini_flash_judge(question: str, answer: str, facts: list[str]) -> dict:
@@ -86,11 +100,18 @@ def gemini_flash_judge(question: str, answer: str, facts: list[str]) -> dict:
     prompt = JUDGE_SYSTEM + "\n\n" + JUDGE_PROMPT_TEMPLATE.format(
         question=question, facts=facts_text, answer=answer
     )
+    if gemini_client is None:
+        resp = anthropic_client.messages.create(
+            model=ANTHROPIC_STRONG_MODEL,
+            max_tokens=512,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return parse_json(resp.content[0].text)
     resp = gemini_client.models.generate_content(
-        model="gemini-2.5-flash",
+        model=GEMINI_MODEL,
         contents=prompt,
     )
-    return json.loads(resp.text)
+    return parse_json(resp.text)
 
 
 JUDGES = {

@@ -18,20 +18,27 @@ from dataclasses import dataclass
 import litellm
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from shared.config import OPENAI_API_KEY, GOOGLE_API_KEY, ANTHROPIC_API_KEY
+from shared.config import (
+    OPENAI_API_KEY, GOOGLE_API_KEY, ANTHROPIC_API_KEY,
+    OPENAI_MODEL, ANTHROPIC_MODEL, GEMINI_MODEL, OLLAMA_MODEL,
+    OPENAI_BASE_URL, ANTHROPIC_BASE_URL,
+)
 
 
 # ── Models to Benchmark ─────────────────────────────────────────────
 
+# Cloud rows are added only when their key is set AND the endpoint isn't
+# redirected to a local server (a local .env points both SDKs at Ollama).
 MODELS = []
-if OPENAI_API_KEY:
-    MODELS.append({"id": "gpt-4o", "display": "GPT-5.4", "provider": "openai"})
+if OPENAI_API_KEY and not OPENAI_BASE_URL:
+    MODELS.append({"id": OPENAI_MODEL, "display": OPENAI_MODEL, "provider": "openai"})
 if GOOGLE_API_KEY:
-    MODELS.append({"id": "gemini/gemini-2.5-flash", "display": "Gemini 3.1 Flash", "provider": "google"})
-if ANTHROPIC_API_KEY:
-    MODELS.append({"id": "anthropic/claude-sonnet-4-20250514", "display": "Claude 4.6", "provider": "anthropic"})
-# Ollama (always available if running)
-MODELS.append({"id": "ollama/llama3:8b", "display": "Llama 3 8B (local)", "provider": "ollama"})
+    MODELS.append({"id": f"gemini/{GEMINI_MODEL}", "display": GEMINI_MODEL, "provider": "google"})
+if ANTHROPIC_API_KEY and not ANTHROPIC_BASE_URL:
+    MODELS.append({"id": f"anthropic/{ANTHROPIC_MODEL}", "display": ANTHROPIC_MODEL, "provider": "anthropic"})
+# Ollama (always attempted; fails fast if `ollama serve` isn't running).
+# ollama_chat/ uses Ollama's chat endpoint, which supports native tool calls.
+MODELS.append({"id": f"ollama_chat/{OLLAMA_MODEL}", "display": f"{OLLAMA_MODEL} (local)", "provider": "ollama"})
 
 
 # ── Tool Schema ──────────────────────────────────────────────────────

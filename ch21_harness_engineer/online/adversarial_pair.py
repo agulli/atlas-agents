@@ -28,8 +28,14 @@ from pathlib import Path
 
 import anthropic
 
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import ANTHROPIC_STRONG_MODEL  # also loads .env
+from shared.llm_utils import parse_json
+
+
 client = anthropic.Anthropic()
-MODEL = "claude-opus-4-8"
+MODEL = ANTHROPIC_STRONG_MODEL
 
 STATS_FILE = Path("adversary_stats.json")
 RUBBER_STAMP_WINDOW = 20   # zero blocks in this many reviews → warn
@@ -71,10 +77,7 @@ def attack(task: str, artifact: str) -> dict:
             "content": f"ORIGINAL TASK:\n{task}\n\nBUILDER'S ARTIFACT:\n{artifact}",
         }],
     )
-    text = resp.content[0].text.strip()
-    if text.startswith("```"):
-        text = text.strip("`").removeprefix("json").strip()
-    return json.loads(text)
+    return parse_json(resp.content[0].text)
 
 
 # ── The rubber-stamp detector ────────────────────────────────────────

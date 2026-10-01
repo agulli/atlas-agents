@@ -9,15 +9,21 @@ useful for air-gapped environments or when data privacy prevents
 sending payloads to a cloud provider.
 
 Requires:
-    brew install ollama && ollama pull llama3.1
+    brew install ollama && ollama pull gemma4   # set OLLAMA_MODEL in .env
     pip install requests
 """
 
 import json
+import sys
+from pathlib import Path
+
 import requests
 
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import OLLAMA_MODEL  # also loads .env
+
 OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL = "llama3.1"  # Must support tool calling (llama3.1+, mistral-nemo, etc.)
+MODEL = OLLAMA_MODEL  # Must support tool calling (gemma4, llama3.1+, mistral-nemo, ...)
 
 
 # ── Tool Registry ────────────────────────────────────────────────────

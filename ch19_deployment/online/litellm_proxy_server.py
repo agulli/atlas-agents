@@ -26,6 +26,12 @@ import os
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import (  # also loads .env
+    ANTHROPIC_MODEL, ANTHROPIC_FAST_MODEL, ANTHROPIC_STRONG_MODEL, GEMINI_MODEL, OLLAMA_MODEL,
+)
 
 # ── Proxy configuration ───────────────────────────────────────────────
 
@@ -35,7 +41,7 @@ LITELLM_CONFIG = {
         {
             "model_name":     "claude-sonnet",
             "litellm_params": {
-                "model":   "anthropic/claude-sonnet-4-6",
+                "model":   f"anthropic/{ANTHROPIC_MODEL}",
                 "api_key": "os.environ/ANTHROPIC_API_KEY",
             },
         },
@@ -43,7 +49,7 @@ LITELLM_CONFIG = {
         {
             "model_name":     "claude-sonnet",
             "litellm_params": {
-                "model":   "anthropic/claude-haiku-4-5-20251001",
+                "model":   f"anthropic/{ANTHROPIC_FAST_MODEL}",
                 "api_key": "os.environ/ANTHROPIC_API_KEY",
             },
         },
@@ -51,7 +57,7 @@ LITELLM_CONFIG = {
         {
             "model_name":     "gemini-flash",
             "litellm_params": {
-                "model":   "gemini/gemini-2.5-flash",
+                "model":   f"gemini/{GEMINI_MODEL}",
                 "api_key": "os.environ/GOOGLE_API_KEY",
             },
         },
@@ -59,7 +65,7 @@ LITELLM_CONFIG = {
         {
             "model_name":     "local",
             "litellm_params": {
-                "model":   "ollama/llama3:8b",
+                "model":   f"ollama_chat/{OLLAMA_MODEL}",
                 "api_base": "http://localhost:11434",
             },
         },
@@ -67,7 +73,7 @@ LITELLM_CONFIG = {
         {
             "model_name":     "claude-opus",
             "litellm_params": {
-                "model":   "anthropic/claude-opus-4-8",
+                "model":   f"anthropic/{ANTHROPIC_STRONG_MODEL}",
                 "api_key": "os.environ/ANTHROPIC_API_KEY",
             },
         },
@@ -158,6 +164,7 @@ def test_proxy(port: int = 4000):
     test_routes = [
         ("claude-sonnet", "What is 2+2?"),
         ("gemini-flash",  "What is 3+3?"),
+        ("local",         "What is 4+4?"),
     ]
 
     print(f"Testing LiteLLM proxy at http://localhost:{port}...")

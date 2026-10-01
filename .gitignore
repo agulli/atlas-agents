@@ -1,0 +1,10 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Runtime state written by the chapter demos
+ch08_mcp_a2a/knowledge.db
+ch11_memory/memory_store/

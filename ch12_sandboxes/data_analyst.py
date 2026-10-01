@@ -14,6 +14,11 @@ from pathlib import Path
 
 import anthropic
 
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.config import ANTHROPIC_MODEL  # also loads .env
+
+
 client = anthropic.Anthropic()
 
 
@@ -71,6 +76,11 @@ def run_data_analyst(task: str, data_path: str | None = None, max_iterations: in
     except Exception as e:
         print(f"⚠️ E2B unavailable ({e}), using local subprocess")
 
+    # The prompt tells the model the data lives in /tmp/, so mirror that locally too
+    if not use_e2b and data_path and Path(data_path).exists():
+        import shutil
+        shutil.copy(data_path, f"/tmp/{Path(data_path).name}")
+
     messages = [
         {"role": "user", "content": task},
     ]
@@ -82,7 +92,7 @@ def run_data_analyst(task: str, data_path: str | None = None, max_iterations: in
         print(f"\n── Iteration {iteration + 1} ──")
 
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=ANTHROPIC_MODEL,
             system=CODE_AGENT_PROMPT,
             messages=messages,
             max_tokens=2048,

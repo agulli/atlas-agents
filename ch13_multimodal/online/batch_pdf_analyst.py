@@ -31,6 +31,11 @@ from pathlib import Path
 import anthropic
 from pdf2image import convert_from_path
 
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import ANTHROPIC_MODEL  # also loads .env
+
+
 client = anthropic.Anthropic()
 
 MAX_PAGES = 5        # Cap to control cost; raise for longer documents
@@ -50,7 +55,7 @@ def analyze_page(page_image, page_num: int, question: str) -> str:
     image_b64 = pdf_page_to_base64(page_image)
 
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=ANTHROPIC_MODEL,
         messages=[{
             "role": "user",
             "content": [
@@ -79,7 +84,7 @@ def synthesize(per_page: list[dict], question: str) -> str:
         f"=== Page {r['page']} ===\n{r['analysis']}" for r in per_page
     )
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=ANTHROPIC_MODEL,
         system="You are synthesizing per-page analyses of a PDF into a single answer.",
         messages=[{
             "role": "user",

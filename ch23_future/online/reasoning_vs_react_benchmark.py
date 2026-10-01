@@ -34,6 +34,13 @@ from dataclasses import dataclass
 
 import anthropic
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import ANTHROPIC_FAST_MODEL, ANTHROPIC_MODEL, ANTHROPIC_STRONG_MODEL, ENABLE_THINKING  # also loads .env
+
+
 client = anthropic.Anthropic()
 
 # ── Benchmark tasks ───────────────────────────────────────────────────
@@ -121,7 +128,7 @@ def react_run(task: str, max_turns: int = 8) -> RunMetrics:
 
     for _ in range(max_turns):
         resp = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=ANTHROPIC_MODEL,
             system=(
                 "You are a technical assistant. Use tools to gather information when needed. "
                 "Think step by step. When you have a complete answer, respond with it directly."
@@ -173,9 +180,12 @@ def reasoning_first_run(task: str) -> RunMetrics:
     t0 = time.perf_counter()
 
     # Phase 1: One reasoning call with extended thinking
+    # Extended thinking is a Claude API feature; ENABLE_THINKING=false skips it
+    # for local models (the plan-then-execute structure still applies).
+    thinking = {"thinking": {"type": "enabled", "budget_tokens": 5000}} if ENABLE_THINKING else {}
     resp = client.messages.create(
-        model="claude-opus-4-8",
-        thinking={"type": "enabled", "budget_tokens": 5000},
+        model=ANTHROPIC_STRONG_MODEL,
+        **thinking,
         system=(
             "You are an expert technical architect. Think through this problem deeply, "
             "then output a complete, structured answer. If you need to reference tools, "
@@ -223,7 +233,7 @@ def reasoning_first_run(task: str) -> RunMetrics:
 def judge_quality(task: str, answer: str) -> float:
     """Score answer quality 1–5."""
     resp = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model=ANTHROPIC_FAST_MODEL,
         max_tokens=128,
         system="Rate answer quality 1–5. Output only a number.",
         messages=[{"role": "user", "content": f"Task: {task}\n\nAnswer: {answer[:500]}\n\nScore (1-5):"}],

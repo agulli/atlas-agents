@@ -28,6 +28,12 @@ from typing import Callable
 
 import anthropic
 
+import sys
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import ANTHROPIC_STRONG_MODEL  # also loads .env
+
+
 # Rough blended $/1M tokens used for the budget cap (input+output averaged).
 COST_PER_MTOK = {"claude-opus-4-8": 15.0, "claude-haiku-4-5": 3.0}
 
@@ -154,7 +160,7 @@ if __name__ == "__main__":
     def generator(goal: str, lessons: list[str]) -> anthropic.types.Message:
         context = "\n".join(lessons) if lessons else "(first attempt)"
         response = client.messages.create(
-            model="claude-opus-4-8",
+            model=ANTHROPIC_STRONG_MODEL,
             max_tokens=1024,
             messages=[{
                 "role": "user",

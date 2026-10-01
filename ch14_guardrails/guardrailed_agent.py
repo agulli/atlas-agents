@@ -25,6 +25,13 @@ from dataclasses import dataclass
 
 import anthropic
 
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.config import ANTHROPIC_FAST_MODEL, ANTHROPIC_MODEL  # also loads .env
+from shared.llm_utils import parse_json
+
+
 client = anthropic.Anthropic()
 
 
@@ -58,7 +65,7 @@ def check_injection_patterns(text: str) -> dict:
 def check_intent_classification(text: str) -> dict:
     """Layer 2: Intent classification with Claude Haiku (~150ms, ~$0.001)."""
     response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model=ANTHROPIC_FAST_MODEL,
         max_tokens=256,
         system="""Classify the user message intent as ONE of:
 - "in_scope": legitimate research or technical question
@@ -70,7 +77,7 @@ Respond ONLY with JSON: {"intent": "...", "confidence": 0.0-1.0, "reason": "..."
         messages=[{"role": "user", "content": text}],
     )
     try:
-        result = json.loads(response.content[0].text)
+        result = parse_json(response.content[0].text)
         blocked = result.get("intent") in ("jailbreak", "harmful", "out_of_scope")
         return {
             "blocked": blocked,
@@ -110,7 +117,7 @@ def filter_pii(text: str) -> tuple[str, list[str]]:
 def check_hallucination(answer: str) -> dict:
     """Layer 5: Hallucination risk detection with Claude Haiku."""
     response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model=ANTHROPIC_FAST_MODEL,
         max_tokens=256,
         system="""Analyze this AI-generated answer for hallucination risk.
 Check for:
@@ -122,7 +129,7 @@ Respond ONLY with JSON: {"risk": "low|medium|high", "flags": ["..."]}""",
         messages=[{"role": "user", "content": answer}],
     )
     try:
-        return json.loads(response.content[0].text)
+        return parse_json(response.content[0].text)
     except (json.JSONDecodeError, KeyError):
         return {"risk": "unknown", "flags": []}
 
@@ -161,7 +168,7 @@ def run_guardrailed_agent(message: str) -> GuardrailResult:
     # Layer 3: Agent response (Sonnet — only runs if layers 1 & 2 pass)
     print("  Layer 3: Agent response...", end=" ", flush=True)
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=ANTHROPIC_MODEL,
         system="You are Atlas, a research assistant. Be helpful and accurate.",
         messages=[{"role": "user", "content": message}],
         max_tokens=1024,

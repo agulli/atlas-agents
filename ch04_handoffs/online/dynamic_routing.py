@@ -17,11 +17,11 @@ from pathlib import Path
 from openai import OpenAI
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from shared.config import require_key
+from shared.config import require_key, EMBED_MODEL
 
 client = OpenAI(api_key=require_key("openai"))
 
-EMBED_MODEL = "text-embedding-3-small"
+# EMBED_MODEL comes from .env: text-embedding-3-small (OpenAI) or embeddinggemma (Ollama).
 
 
 def embed(text: str) -> np.ndarray:

@@ -30,8 +30,14 @@ from pathlib import Path
 
 import anthropic
 
-CHEAP_MODEL = "claude-haiku-4-5"      # ~10x cheaper
-STRONG_MODEL = "claude-opus-4-8"      # the safe default
+import sys
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import ANTHROPIC_FAST_MODEL, ANTHROPIC_STRONG_MODEL  # also loads .env
+
+
+CHEAP_MODEL = ANTHROPIC_FAST_MODEL      # ~10x cheaper
+STRONG_MODEL = ANTHROPIC_STRONG_MODEL      # the safe default
 
 MIN_SAMPLES = 20          # rates below this sample size are ignored
 DOWNGRADE_THRESHOLD = 0.95

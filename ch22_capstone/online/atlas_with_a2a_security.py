@@ -41,6 +41,12 @@ from pydantic import BaseModel
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from atlas_capstone import AtlasState, build_graph, filter_pii
 
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import ANTHROPIC_MODEL  # also loads .env
+from shared.llm_utils import parse_json
+
+
 client = anthropic.Anthropic()
 
 
@@ -88,7 +94,7 @@ async def create_task(task: A2ATask):
     )
 
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=ANTHROPIC_MODEL,
         system=(
             "You are a Security Auditor specializing in Python code. "
             "Audit the provided code for OWASP Top 10 vulnerabilities. "
@@ -103,7 +109,7 @@ async def create_task(task: A2ATask):
     )
 
     try:
-        result = json.loads(response.content[0].text)
+        result = parse_json(response.content[0].text)
     except json.JSONDecodeError:
         result = {"verdict": "approved", "findings": []}
 

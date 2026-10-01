@@ -13,14 +13,21 @@ Usage:
     pip install dspy-ai
 """
 
+import sys
+from pathlib import Path
+
 import dspy
 from dspy.teleprompt import BootstrapFewShot
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import LITELLM_MODEL  # also loads .env
 
 
 # ── Model Configuration ──────────────────────────────────────────────
 # Swap the model string to use a different provider — nothing else changes.
+# LITELLM_MODEL: "openai/gpt-4o" (default) or "ollama_chat/gemma4-longctx" (local).
 
-lm = dspy.LM("openai/gpt-4o", max_tokens=1024)
+lm = dspy.LM(LITELLM_MODEL, max_tokens=1024)
 dspy.configure(lm=lm)
 
 

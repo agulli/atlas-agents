@@ -28,10 +28,16 @@ from pathlib import Path
 
 import anthropic
 
+import sys
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import ANTHROPIC_FAST_MODEL, ANTHROPIC_STRONG_MODEL  # also loads .env
+
+
 client = anthropic.Anthropic()
 
-CRITIC_MODEL = "claude-haiku-4-5"   # clusters failure patterns
-REWRITE_MODEL = "claude-opus-4-8"   # proposes the prompt rewrite
+CRITIC_MODEL = ANTHROPIC_FAST_MODEL   # clusters failure patterns
+REWRITE_MODEL = ANTHROPIC_STRONG_MODEL   # proposes the prompt rewrite
 
 # Demo data used when no real logs/prompt exist yet, so the script runs
 # end-to-end out of the box.

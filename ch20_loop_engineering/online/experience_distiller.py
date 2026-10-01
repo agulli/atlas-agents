@@ -27,8 +27,14 @@ from pathlib import Path
 import anthropic
 import chromadb
 
+import sys
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import ANTHROPIC_STRONG_MODEL  # also loads .env
+
+
 client = anthropic.Anthropic()
-MODEL = "claude-opus-4-8"
+MODEL = ANTHROPIC_STRONG_MODEL
 
 # A nine-attempt saga, compressed here for the demo. In production this is
 # the loop's attempt log (fix_loop.py writes one lesson per attempt).

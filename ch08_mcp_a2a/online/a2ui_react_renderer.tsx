@@ -12,4 +12,4 @@ const AgentWidgetRenderer = ({ payload }) => {
         default:
             return <p>{payload.text}</p>;
     }
-}\n
+}

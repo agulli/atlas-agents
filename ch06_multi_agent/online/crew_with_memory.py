@@ -10,7 +10,16 @@ Usage (conceptual — requires CrewAI with agents defined):
 Requires: pip install crewai
 """
 
-from crewai import Crew, Agent, Task, Process
+import sys
+from pathlib import Path
+
+from crewai import Crew, Agent, Task, Process, LLM
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import LITELLM_MODEL, EMBED_MODEL, is_local  # also loads .env
+
+# CrewAI routes through LiteLLM: "openai/gpt-4o" in the cloud, "ollama_chat/<model>" locally.
+llm = LLM(model=LITELLM_MODEL)
 
 
 # ── Agents ───────────────────────────────────────────────────────────
@@ -21,6 +30,7 @@ research_agent = Agent(
     backstory="You are a meticulous researcher who cross-references sources.",
     verbose=True,
     allow_delegation=False,
+    llm=llm,
 )
 
 writer_agent = Agent(
@@ -29,6 +39,7 @@ writer_agent = Agent(
     backstory="You turn complex research into clear, engaging prose.",
     verbose=True,
     allow_delegation=False,
+    llm=llm,
 )
 
 # ── Tasks ────────────────────────────────────────────────────────────
@@ -57,8 +68,8 @@ crew = Crew(
     process=Process.sequential,
     memory=True,  # Enables short-term, long-term, and entity memory
     embedder={
-        "provider": "openai",
-        "config": {"model": "text-embedding-3-small"},
+        "provider": "ollama" if is_local() else "openai",
+        "config": {"model": EMBED_MODEL},
     },
     verbose=True,
 )

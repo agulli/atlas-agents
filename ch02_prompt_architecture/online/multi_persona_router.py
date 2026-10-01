@@ -15,7 +15,7 @@ from pathlib import Path
 from openai import OpenAI
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from shared.config import require_key, OPENAI_MODEL
+from shared.config import require_key, OPENAI_MODEL, OPENAI_FAST_MODEL
 
 client = OpenAI(api_key=require_key("openai"))
 
@@ -57,7 +57,7 @@ def route_and_respond(query: str) -> tuple[str, str]:
     """Route a query to the right persona and generate a response."""
     # Step 1: Classify intent
     router_response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=OPENAI_FAST_MODEL,
         messages=[{"role": "user", "content": build_router_prompt(query)}],
         temperature=0,
     )

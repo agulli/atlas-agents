@@ -31,6 +31,14 @@ from typing import Any
 
 import anthropic
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import ANTHROPIC_MODEL  # also loads .env
+from shared.llm_utils import parse_json
+
+
 client = anthropic.Anthropic()
 
 
@@ -138,7 +146,7 @@ def generate_optimization(issues: list[dict]) -> dict:
 
     issues_text = json.dumps(issues, indent=2)
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=ANTHROPIC_MODEL,
         system=(
             "You are a LangGraph optimization expert. Given a list of inefficiency patterns "
             "in an agent's routing, propose concrete graph changes. "
@@ -158,7 +166,7 @@ def generate_optimization(issues: list[dict]) -> dict:
     )
 
     try:
-        return json.loads(response.content[0].text)
+        return parse_json(response.content[0].text)
     except json.JSONDecodeError:
         return {"changes": [], "expected_improvement": response.content[0].text}
 

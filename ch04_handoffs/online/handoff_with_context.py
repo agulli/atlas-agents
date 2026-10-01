@@ -18,7 +18,7 @@ from pathlib import Path
 from openai import OpenAI
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from shared.config import require_key, OPENAI_MODEL
+from shared.config import require_key, OPENAI_MODEL, OPENAI_FAST_MODEL
 
 client = OpenAI(api_key=require_key("openai"))
 
@@ -30,7 +30,7 @@ def compress_history(source_agent: str, conversation: list[dict]) -> str:
     )
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",  # Fast and cheap for compression
+        model=OPENAI_FAST_MODEL,  # Fast and cheap for compression
         messages=[{
             "role": "user",
             "content": f"""Summarize what {source_agent} accomplished in this conversation.

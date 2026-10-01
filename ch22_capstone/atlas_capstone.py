@@ -30,9 +30,17 @@ import anthropic
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.config import ANTHROPIC_MODEL  # also loads .env
+from shared.llm_utils import parse_json
+
+
 client = anthropic.Anthropic()
 
-CLAUDE_MODEL  = "claude-sonnet-4-6"
+CLAUDE_MODEL  = ANTHROPIC_MODEL
 MAX_RETRIES   = 3
 
 
@@ -143,11 +151,9 @@ def coder_node(state: AtlasState) -> dict:
     )
 
     text = response.content[0].text
-    try:
-        # Extract JSON from the response
-        json_match = re.search(r'\{[^{}]*\}', text, re.DOTALL)
-        changes    = json.loads(json_match.group()) if json_match else {}
-    except (json.JSONDecodeError, AttributeError):
+    # Tolerates ```json fences and surrounding prose (common with local models)
+    changes = parse_json(text, default={})
+    if not isinstance(changes, dict):
         changes = {}
 
     print(f"\nCoder wrote {len(changes)} file(s): {list(changes.keys())}")
@@ -215,7 +221,7 @@ def reviewer_node(state: AtlasState) -> dict:
     )
 
     try:
-        review = json.loads(response.content[0].text)
+        review = parse_json(response.content[0].text)
     except json.JSONDecodeError:
         review = {"verdict": "approved", "comments": []}
 
@@ -267,7 +273,6 @@ def publish_pr_node(state: AtlasState) -> dict:
     subprocess.run(["git", "checkout", "-b", branch], check=True)
 
     for filename, content in (state.get("code_changes") or {}).items():
-        from pathlib import Path
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
         Path(filename).write_text(content)
         subprocess.run(["git", "add", filename], check=True)

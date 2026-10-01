@@ -27,4 +27,4 @@ def dynamically_load_skills(directory_path="shared/declarative_skills/"):
                 "description": meta.get("description", "A loaded skill"),
                 "system_prompt": body
             })
-    return skills\n
+    return skills

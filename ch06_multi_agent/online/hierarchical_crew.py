@@ -10,7 +10,16 @@ Usage:
 Requires: pip install crewai
 """
 
-from crewai import Agent, Task, Crew, Process
+import sys
+from pathlib import Path
+
+from crewai import Agent, Task, Crew, Process, LLM
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import LITELLM_MODEL  # also loads .env
+
+# CrewAI routes through LiteLLM: "openai/gpt-4o" in the cloud, "ollama_chat/<model>" locally.
+llm = LLM(model=LITELLM_MODEL)
 
 
 # ── Agents ───────────────────────────────────────────────────────────
@@ -21,6 +30,7 @@ senior_dev = Agent(
     backstory="You are a 10-year veteran who writes idiomatic Python with full type hints and docstrings.",
     verbose=True,
     allow_delegation=False,
+    llm=llm,
 )
 
 qa_engineer = Agent(
@@ -29,6 +39,7 @@ qa_engineer = Agent(
     backstory="You are obsessive about edge cases and writing tests that catch real bugs.",
     verbose=True,
     allow_delegation=False,
+    llm=llm,
 )
 
 technical_lead = Agent(
@@ -37,6 +48,7 @@ technical_lead = Agent(
     backstory="You are the team lead who reviews all work. You send code back for revision if it doesn't meet your standards.",
     verbose=True,
     allow_delegation=True,
+    llm=llm,
 )
 
 # ── Tasks ────────────────────────────────────────────────────────────

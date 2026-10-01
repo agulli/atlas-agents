@@ -30,10 +30,16 @@ from pathlib import Path
 
 import anthropic
 
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.config import ANTHROPIC_FAST_MODEL, ANTHROPIC_STRONG_MODEL  # also loads .env
+from shared.llm_utils import parse_json
+
+
 client = anthropic.Anthropic()
 
-MODEL = "claude-opus-4-8"        # generates the patches
-COMPACT_MODEL = "claude-haiku-4-5"  # compacts failures into lessons
+MODEL = ANTHROPIC_STRONG_MODEL        # generates the patches
+COMPACT_MODEL = ANTHROPIC_FAST_MODEL  # compacts failures into lessons
 MAX_ATTEMPTS = 4
 STALL_LIMIT = 2                  # same fingerprint N+1 times → escalate
 
@@ -163,7 +169,7 @@ def generate_and_apply(repo: Path, goal: str, evidence: str,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": context}],
     )
-    replacements = json.loads(resp.content[0].text)
+    replacements = parse_json(resp.content[0].text)
     changed = []
     for item in replacements:
         target = (repo / item["path"]).resolve()

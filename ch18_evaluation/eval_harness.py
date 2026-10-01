@@ -29,6 +29,14 @@ from dataclasses import dataclass, field
 
 import anthropic
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.config import ANTHROPIC_FAST_MODEL, ANTHROPIC_MODEL  # also loads .env
+from shared.llm_utils import parse_json
+
+
 client = anthropic.Anthropic()
 
 # ── Eval case definition ─────────────────────────────────────────────
@@ -181,7 +189,7 @@ def mock_agent(message: str) -> dict:
     Returns the same schema the eval harness expects.
     """
     response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model=ANTHROPIC_FAST_MODEL,
         system="You are Atlas, a research and code review assistant.",
         messages=[{"role": "user", "content": message}],
         max_tokens=512,
@@ -206,7 +214,7 @@ def llm_judge(question: str, answer: str, facts: list[str]) -> dict:
 
     facts_text = "\n".join(f"- {f}" for f in facts)
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=ANTHROPIC_MODEL,
         max_tokens=512,
         system=(
             "You are an impartial evaluator. Grade the agent's answer based ONLY "
@@ -225,7 +233,7 @@ def llm_judge(question: str, answer: str, facts: list[str]) -> dict:
         }],
     )
     try:
-        return json.loads(response.content[0].text)
+        return parse_json(response.content[0].text)
     except json.JSONDecodeError:
         return {"score": 0, "hallucinated": True, "reasoning": "Judge returned invalid JSON"}
 

@@ -10,7 +10,16 @@ Usage:
 Requires: pip install crewai
 """
 
-from crewai import Agent, Task, Crew, Process
+import sys
+from pathlib import Path
+
+from crewai import Agent, Task, Crew, Process, LLM
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import LITELLM_MODEL  # also loads .env
+
+# CrewAI routes through LiteLLM: "openai/gpt-4o" in the cloud, "ollama_chat/<model>" locally.
+llm = LLM(model=LITELLM_MODEL)
 
 
 # ── Debaters ─────────────────────────────────────────────────────────
@@ -21,6 +30,7 @@ researcher_pro = Agent(
     backstory="You are a persuasive debater who finds the best evidence supporting a position.",
     verbose=True,
     allow_delegation=False,
+    llm=llm,
 )
 
 researcher_con = Agent(
@@ -29,6 +39,7 @@ researcher_con = Agent(
     backstory="You are a rigorous skeptic who identifies risks, flaws, and counterarguments.",
     verbose=True,
     allow_delegation=False,
+    llm=llm,
 )
 
 # ── Debate Tasks ─────────────────────────────────────────────────────
@@ -55,7 +66,7 @@ crew = Crew(
     agents=[researcher_pro, researcher_con],
     tasks=[debate_task_pro, debate_task_con],
     process=Process.hierarchical,
-    manager_llm="gpt-4o",  # The judge model
+    manager_llm=llm,  # The judge model
     verbose=True,
 )
 

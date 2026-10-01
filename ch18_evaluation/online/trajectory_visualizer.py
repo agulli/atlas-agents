@@ -27,6 +27,11 @@ from typing import Any
 
 import anthropic
 
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import ANTHROPIC_MODEL  # also loads .env
+
+
 client = anthropic.Anthropic()
 
 # Cost rates ($/1M tokens) as of Q2 2026
@@ -48,7 +53,7 @@ class TrajectoryStep:
     output:     Any = None
     latency_ms: float = 0.0
     tokens:     int = 0
-    model:      str = "claude-sonnet-4-6"
+    model:      str = ANTHROPIC_MODEL
     error:      str | None = None
 
 
@@ -147,7 +152,7 @@ def render_trajectory(traj: Trajectory):
 
 # ── Live trajectory capture ───────────────────────────────────────────
 
-def capture_and_visualize(question: str, model: str = "claude-sonnet-4-6") -> Trajectory:
+def capture_and_visualize(question: str, model: str = ANTHROPIC_MODEL) -> Trajectory:
     """
     Run a real Claude call with tool use, capture the trajectory, and render it.
     Shows exactly what the eval harness would see.
@@ -247,7 +252,7 @@ def main():
     parser = argparse.ArgumentParser(description="Atlas Trajectory Visualizer")
     parser.add_argument("file",      nargs="?",  help="Trajectory JSON file to visualize")
     parser.add_argument("--live",    default=None, help="Capture live trajectory for a question")
-    parser.add_argument("--model",   default="claude-sonnet-4-6")
+    parser.add_argument("--model",   default=ANTHROPIC_MODEL)
     args = parser.parse_args()
 
     if args.live:

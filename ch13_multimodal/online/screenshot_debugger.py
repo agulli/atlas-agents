@@ -28,6 +28,11 @@ from pathlib import Path
 
 import anthropic
 
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import ANTHROPIC_MODEL  # also loads .env
+
+
 client = anthropic.Anthropic()
 
 COMPARISON_PROMPT = """You are an expert front-end QA engineer doing a pixel-level design review.
@@ -80,7 +85,7 @@ def compare_designs(expected_path: str, actual_path: str) -> str:
     actual_b64,   actual_mime   = load_image_b64(actual_path)
 
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=ANTHROPIC_MODEL,
         messages=[{
             "role": "user",
             "content": [

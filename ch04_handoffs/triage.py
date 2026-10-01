@@ -16,11 +16,20 @@ from pathlib import Path
 # Note: This requires the openai-agents package
 # pip install openai-agents
 from agents import Agent, Runner, InputGuardrail, GuardrailFunctionOutput, InputGuardrailTripwireTriggered
+from agents import set_default_openai_api, set_default_openai_client, set_tracing_disabled
+from openai import AsyncOpenAI
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from shared.config import require_key
+from shared.config import require_key, OPENAI_MODEL, OPENAI_BASE_URL
 
 require_key("openai")
+
+# Local / OpenAI-compatible servers (e.g. Ollama) speak Chat Completions, not the
+# Responses API, and can't receive OpenAI tracing uploads.
+if OPENAI_BASE_URL:
+    set_default_openai_client(AsyncOpenAI(base_url=OPENAI_BASE_URL))
+    set_default_openai_api("chat_completions")
+    set_tracing_disabled(True)
 
 
 # ── Tool Stubs (replace with real implementations) ──────────────────
@@ -54,6 +63,7 @@ def check_status(ticket_id: str) -> str:
 
 billing_agent = Agent(
     name="Billing Specialist",
+    model=OPENAI_MODEL,
     instructions="""You are a billing specialist at Atlas Corp. You help customers with:
     - Invoice questions and payment history
     - Payment method updates
@@ -67,6 +77,7 @@ billing_agent = Agent(
 
 technical_agent = Agent(
     name="Technical Support",
+    model=OPENAI_MODEL,
     instructions="""You are a technical support engineer at Atlas Corp. You help with:
     - Bug reports and error troubleshooting
     - API integration issues
@@ -80,6 +91,7 @@ technical_agent = Agent(
 
 general_agent = Agent(
     name="General Support",
+    model=OPENAI_MODEL,
     instructions="""You are a general support agent at Atlas Corp. You handle:
     - General product inquiries
     - Account information
@@ -114,6 +126,7 @@ async def profanity_check(ctx, agent, input_text):
 
 triage_agent = Agent(
     name="Triage Router",
+    model=OPENAI_MODEL,
     instructions="""You are the first point of contact for Atlas Corp support.
     Your ONLY job is to route the customer to the right specialist:
 

@@ -19,4 +19,4 @@ def secure_db_query(sql_query: str):
             # Limit returned rows mathematically
             return cursor.fetchmany(50) 
     except Exception as e:
-        return f"Query structure invalid: {e}"\n
+        return f"Query structure invalid: {e}"

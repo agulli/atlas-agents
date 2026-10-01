@@ -14,8 +14,14 @@ Usage:
 import time
 import logging
 from dataclasses import dataclass, field
+import sys
+from pathlib import Path
+
 from litellm import completion
 import litellm
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import OPENAI_MODEL, ANTHROPIC_MODEL, GEMINI_MODEL, OLLAMA_MODEL  # also loads .env
 
 litellm.set_verbose = False
 logger = logging.getLogger(__name__)
@@ -24,10 +30,10 @@ logger = logging.getLogger(__name__)
 # ── Provider Priority List ───────────────────────────────────────────
 # Ordered by preference: best quality first, cheapest fallback last.
 PROVIDER_CHAIN = [
-    "gpt-4o",
-    "anthropic/claude-sonnet-4-20250514",
-    "gemini/gemini-2.5-flash",
-    "ollama/llama3:8b",   # always available locally
+    OPENAI_MODEL,
+    f"anthropic/{ANTHROPIC_MODEL}",
+    f"gemini/{GEMINI_MODEL}",
+    f"ollama_chat/{OLLAMA_MODEL}",   # always available locally
 ]
 
 # How long (seconds) to skip a provider after a failure

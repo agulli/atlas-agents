@@ -23,6 +23,11 @@ from pathlib import Path
 
 import anthropic
 
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.config import ANTHROPIC_MODEL  # also loads .env
+
+
 client = anthropic.Anthropic()
 
 
@@ -43,7 +48,7 @@ def analyze_image(image_path: str, question: str) -> str:
     }.get(path.suffix.lower(), "image/png")
 
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=ANTHROPIC_MODEL,
         messages=[{
             "role": "user",
             "content": [
@@ -104,7 +109,7 @@ def analyze_pdf_fallback(pdf_path: str, question: str) -> str:
     text = result.stdout[:8000] if result.returncode == 0 else "(text extraction failed)"
 
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=ANTHROPIC_MODEL,
         system="Answer the question based solely on the document text provided.",
         messages=[{
             "role": "user",
@@ -135,7 +140,7 @@ def route_and_analyze(input_type: str, file_path: str, question: str) -> str:
         print(f"📝 Routing to: Claude text")
         text = Path(file_path).read_text() if Path(file_path).exists() else file_path
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=ANTHROPIC_MODEL,
             messages=[{"role": "user", "content": f"{question}\n\n{text}"}],
             max_tokens=1024,
         )

@@ -39,6 +39,11 @@ import sys
 import textwrap
 import requests
 
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import ANTHROPIC_MODEL  # also loads .env
+
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
@@ -57,7 +62,7 @@ def get_pr_diff() -> str:
     return result.stdout
 
 
-def run_claude_headless(prompt: str, model: str = "claude-sonnet-4-6") -> str:
+def run_claude_headless(prompt: str, model: str = ANTHROPIC_MODEL) -> str:
     """
     Run Claude Code with --print for non-interactive, CI-safe execution.
 

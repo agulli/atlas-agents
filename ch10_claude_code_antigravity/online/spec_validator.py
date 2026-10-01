@@ -27,6 +27,12 @@ from pathlib import Path
 import requests
 import anthropic
 
+import sys
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import ANTHROPIC_MODEL  # also loads .env
+
+
 client = anthropic.Anthropic()
 
 
@@ -183,7 +189,7 @@ def run_agent(prompt: str, agent_url: str | None) -> str:
         contract_path = Path(__file__).parent.parent / "AGENTS.md"
         system = contract_path.read_text() if contract_path.exists() else "You are Atlas."
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=ANTHROPIC_MODEL,
             system=system,
             messages=[
                 {"role": "user", "content": prompt},

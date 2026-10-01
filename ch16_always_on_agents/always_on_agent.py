@@ -27,6 +27,11 @@ from pathlib import Path
 
 import anthropic
 
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.config import ANTHROPIC_MODEL  # also loads .env
+
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
@@ -63,7 +68,7 @@ def process_task(task_file: Path) -> str:
         raise ValueError("Task file is empty")
 
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=ANTHROPIC_MODEL,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": task}],
         max_tokens=1024,

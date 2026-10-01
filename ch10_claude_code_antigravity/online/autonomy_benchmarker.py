@@ -28,6 +28,14 @@ from dataclasses import dataclass, field
 from enum import Enum
 import anthropic
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import ANTHROPIC_FAST_MODEL  # also loads .env
+from shared.llm_utils import parse_json
+
+
 client = anthropic.Anthropic()
 
 
@@ -124,7 +132,7 @@ def simulate_task(task: dict, level: AutonomyLevel, model: str) -> TaskResult:
             ],
             max_tokens=400,
         )
-        data = json.loads(response.content[0].text or "{}")
+        data = parse_json(response.content[0].text or "{}")
         latency = time.time() - start
         tokens = response.usage.input_tokens + response.usage.output_tokens
 
@@ -226,7 +234,7 @@ def print_report(summaries: list[BenchmarkSummary]):
 def main():
     parser = argparse.ArgumentParser(description="Benchmark agent autonomy levels")
     parser.add_argument("--tasks", type=int, default=len(BENCHMARK_TASKS), help="Tasks to run")
-    parser.add_argument("--model", default="claude-haiku-4-5", help="Model to use")
+    parser.add_argument("--model", default=ANTHROPIC_FAST_MODEL, help="Model to use")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     args = parser.parse_args()
 
